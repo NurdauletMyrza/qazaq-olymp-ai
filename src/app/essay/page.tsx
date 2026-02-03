@@ -11,15 +11,27 @@ const topics = [
 ];
 
 export default function EssayPage() {
-    const [topic, setTopic] = useState(topics[0]);
+    const [topic, setTopic] = useState("Тақырып таңдаңыз немесе ИИ-ге сеніп тапсырыңыз");
     const [essay, setEssay] = useState('');
     const [result, setResult] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isGeneratingTopic, setIsGeneratingTopic] = useState(false);
 
-    const generateTopic = () => {
-        const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-        setTopic(randomTopic);
-        setResult('');
+    const generateAiTopic = async () => {
+        setIsGeneratingTopic(true);
+        try {
+            const res = await fetch('/api/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'generate_topic' }),
+            });
+            const data = await res.json();
+            setTopic(data.text);
+            setResult('');
+        } catch (error) {
+            alert("Тақырып ойлап табу мүмкін болмады");
+        }
+        setIsGeneratingTopic(false);
     };
 
     const wordCount = essay.trim() === '' ? 0 : essay.trim().split(/\s+/).length;
@@ -49,48 +61,53 @@ export default function EssayPage() {
         setLoading(false);
     };
 
-    return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+    return (<div className="min-h-screen bg-slate-50 p-4 md:p-8">
             <div className="max-w-4xl mx-auto">
-                <Link href="/" className="text-blue-600 hover:underline mb-6 inline-block">← Басқы бетке оралу</Link>
+                <Link href="/" className="text-blue-600 hover:underline mb-6 inline-block">← Артқа</Link>
 
-                <div className="bg-white rounded-2xl shadow-sm p-6 border mb-6">
-                    <h1 className="text-2xl font-bold mb-4">Эссе жазу тренажеры</h1>
+                <div className="bg-white rounded-3xl shadow-xl p-8 border border-slate-100">
+                    <h1 className="text-3xl font-black mb-6 text-slate-900">Эссе шеберханасы</h1>
 
-                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6">
-                        <p className="text-sm text-blue-600 font-semibold mb-1">Таңдалған тақырып:</p>
-                        <p className="text-lg font-medium text-slate-800">{topic}</p>
-                        <button
-                            onClick={generateTopic}
-                            className="mt-3 text-sm bg-white border border-blue-200 px-3 py-1 rounded-lg hover:bg-blue-100 transition"
-                        >
-                            🔄 Басқа тақырып
-                        </button>
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 rounded-2xl text-white mb-8 shadow-lg">
+                        <p className="text-blue-100 text-sm font-bold uppercase tracking-widest mb-2">Ағымдағы тақырып:</p>
+                        <h2 className="text-xl font-medium leading-relaxed">
+                            {isGeneratingTopic ? "✨ ИИ жаңа тақырып іздеп жатыр..." : topic}
+                        </h2>
+
+                        <div className="flex gap-3 mt-4">
+                            <button
+                                onClick={generateAiTopic}
+                                disabled={isGeneratingTopic}
+                                className="bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-xl text-sm font-bold transition-all border border-white/10"
+                            >
+                                ✨ ИИ тақырып ойлап тапсын
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="relative">
-            <textarea
-                className="w-full h-80 p-5 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none shadow-inner"
-                placeholder="Эссеңізді осында бастаңыз..."
-                value={essay}
-                onChange={(e) => setEssay(e.target.value)}
-            />
-                        <div className="absolute bottom-4 right-4 text-sm font-mono text-slate-400">
-                            Сөз саны: <span className={wordCount < 200 ? 'text-orange-500' : 'text-green-600'}>{wordCount}</span>
+                    {/* Текстік редактор бөлімі */}
+                    <div className="relative group">
+                        <textarea
+                            className="w-full h-96 p-6 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all resize-none text-lg leading-relaxed shadow-sm group-hover:shadow-md"
+                            placeholder="Ойыңызды осында жазыңыз..."
+                            value={essay}
+                            onChange={(e) => setEssay(e.target.value)}
+                        />
+                        <div className="absolute bottom-6 right-6 flex items-center gap-4 bg-white/80 backdrop-blur px-4 py-2 rounded-full border border-slate-100 shadow-sm">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Сөз саны:</span>
+                            <span className={`text-sm font-black ${essay.split(/\s+/).length < 200 ? 'text-orange-500' : 'text-green-600'}`}>
+                                {essay.trim() === '' ? 0 : essay.trim().split(/\s+/).length}
+                            </span>
                         </div>
                     </div>
 
                     <button
-                        onClick={checkEssay}
-                        disabled={loading}
-                        className={`w-full mt-6 py-4 rounded-xl font-bold text-white transition-all ${
-                            loading ? 'bg-slate-400' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200'
-                        }`}
+                        onClick={() => {/* checkEssay функциясын шақыру */}}
+                        className="w-full mt-8 bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-blue-600 hover:shadow-2xl hover:shadow-blue-200 transition-all transform active:scale-[0.98]"
                     >
-                        {loading ? 'ИИ тексеріп жатыр...' : 'Тексеруге жіберу'}
+                        {loading ? '🔍 Сараптама жасалуда...' : 'Нәтижені көру'}
                     </button>
                 </div>
-
                 {result && (
                     <div className="bg-white rounded-2xl shadow-sm p-6 border border-green-100 animate-in fade-in duration-500">
                         <h2 className="text-xl font-bold mb-4 flex items-center">

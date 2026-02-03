@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
     try {
         const { question, answer, type } = await req.json();
-        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+        const apiKey = process.env.GEMINI_API_KEY;
 
         if (!apiKey) {
             return NextResponse.json({ error: "API Key missing" }, { status: 500 });
@@ -12,8 +12,17 @@ export async function POST(req: Request) {
         // v1 нұсқасы және тұрақты 2.5-flash моделі
         const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
-        // 2025-2026 ресми олимпиада критерийлері бойынша промпт
-        const systemPrompt = `
+        let prompt = "";
+
+        if (type === 'generate_topic') {
+            // ТАҚЫРЫП ОЙЛАП ТАБУ ПРОМПТЫ
+            prompt = `Сен қазақ тілі мен әдебиеті пәнінен олимпиада тапсырмаларын құрастырушысың. 
+            9-11 сынып оқушыларына арналған эссе тақырыбын ойлап тап. 
+            Тақырып әдеби шығармаларға (Абай жолы, Құлагер, т.б.) немесе заманауи еркін тақырыптарға (AI, құндылықтар) қатысты болуы керек. 
+            ТЕК тақырыптың атын ғана қайтар, артық сөз жазба.`;
+        } else {
+            // ЭССЕ ТЕКСЕРУ ПРОМПТЫ (бұрынғы промпт)
+            prompt = `
 Сен — қазақ тілі мен әдебиеті пәнінен Республикалық олимпиаданың сарапшысысың. 
 Оқушының жұмысын 2025-2026 оқу жылының ресми 50 ұпайлық жүйесімен бағала.
 
@@ -28,8 +37,9 @@ export async function POST(req: Request) {
 - Жалпы балл: [Ұпай]/50
 - Әр критерий бойынша талдау және алған балдары.
 - Қатемен жұмыс (нақты қателерді көрсету).
-- Оқушыға бағыт-бағдар беретін сарапшы кеңесі.
+- Оқушыға бағыт-бағдар беретін сарапшы кеңесі.\n\nТапсырма түрі: ${type}\nТақырып: ${question}\nОқушы жауабы: ${answer}\n\nМАҢЫЗДЫ: Әр критерийге толық тоқталып, аргументтер келтір. Жауапты соңына дейін аяқта.
         `;
+        }
 
         const response = await fetch(url, {
             method: "POST",
@@ -37,7 +47,7 @@ export async function POST(req: Request) {
             body: JSON.stringify({
                 contents: [{
                     parts: [{
-                        text: `${systemPrompt}\n\nТапсырма түрі: ${type}\nТақырып: ${question}\nОқушы жауабы: ${answer}\n\nМАҢЫЗДЫ: Әр критерийге толық тоқталып, аргументтер келтір. Жауапты соңына дейін аяқта.`
+                        text: prompt
                     }]
                 }],
                 generationConfig: {
