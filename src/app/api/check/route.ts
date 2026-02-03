@@ -10,7 +10,7 @@ export async function POST(req: Request) {
         }
 
         // Тұрақты v1 нұсқасы және flash-latest моделі
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-preview:generateContent?key=${apiKey}`;
 
         const systemText = type === 'essay'
             ? "Сен қазақ тілі олимпиадасының сарапшысысың. Эссені 10 балдық жүйемен бағалап, қателерін түзет."
