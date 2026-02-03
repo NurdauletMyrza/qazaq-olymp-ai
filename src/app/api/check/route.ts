@@ -37,12 +37,12 @@ export async function POST(req: Request) {
             body: JSON.stringify({
                 contents: [{
                     parts: [{
-                        text: `${systemPrompt}\n\nТапсырма түрі: ${type}\nТақырып: ${question}\nОқушы жауабы: ${answer}`
+                        text: `${systemPrompt}\n\nТапсырма түрі: ${type}\nТақырып: ${question}\nОқушы жауабы: ${answer}\n\nМАҢЫЗДЫ: Әр критерийге толық тоқталып, аргументтер келтір. Жауапты соңына дейін аяқта.`
                     }]
                 }],
                 generationConfig: {
-                    temperature: 0.3, // Бағалау дәл болуы үшін төмендетілді
-                    maxOutputTokens: 2500,
+                    temperature: 0.7, // Азғантай көтерсек, ИИ кеңірек сөйлейтін болады
+                    maxOutputTokens: 8192, // Осы жерді 4096-ға өзгерт
                 }
             })
         });
