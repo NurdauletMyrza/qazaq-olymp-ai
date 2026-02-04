@@ -26,7 +26,7 @@ export async function POST(req: Request) {
                 console.log(`Checking key: ...${apiKey?.slice(-4)}`); // Лог үшін (қауіпсіздік)
 
                 // Тұрақты 1.5-flash моделін қолданған дұрыс (2.5 тегін тарифте жиі бұғатталады)
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
                 let prompt = "";
                 if (type === 'generate_topic') {
