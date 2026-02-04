@@ -30,7 +30,7 @@ export default function Home() {
               Қазақ тілі мен әдебиетінен <span className="text-blue-600">Олимпиадаға</span> дайындал
             </h1>
             <p className="text-lg text-slate-600 mb-10 leading-relaxed">
-              Жасанды интеллект көмегімен эссе жазып, лингвистикалық талдау жасауды үйрен.
+              Эссе жазып, лингвистикалық талдау жасауды үйрен.
               Республикалық олимпиада критерийлері бойынша жылдам баға ал.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -38,7 +38,7 @@ export default function Home() {
                 Эссе жазуды бастау
               </Link>
               <Link href="/olympiad" className="px-8 py-4 bg-white text-slate-900 border-2 border-slate-200 rounded-2xl font-bold hover:bg-slate-50 transition-all transform hover:-translate-y-1">
-                2-кезең тапсырмалары
+                Теориялық кезеңге дайындалу
               </Link>
             </div>
           </div>
