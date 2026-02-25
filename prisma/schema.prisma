@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL") // Vercel берген негізгі сілтеме
+  directUrl = env("POSTGRES_URL_NON_POOLING") // Тікелей байланыс үшін
+}
+
+// Мұғалім жасайтын нұсқа (Теория)
+model Variant {
+  id                 String   @id @default(cuid())
+  title              String
+  createdAt          DateTime @default(now())
+
+  // Қазақ әдебиеті (10 сұрақ JSON форматында сақталады)
+  literature         Json
+
+  // Қазақ тілі (4 бөлім)
+  phoneticsQuestion  String
+  phoneticsExpected  String
+  morphologyQuestion String
+  morphologyExpected String
+  syntaxQuestion     String
+  syntaxExpected     String
+  lexicologyQuestion String
+  lexicologyExpected String
+
+  results            Result[] // Осы нұсқаға тиесілі оқушылардың нәтижелері
+}
+
+// Оқушының нәтижесі
+model Result {
+  id          String   @id @default(cuid())
+  studentName String
+  totalScore  Int
+  details     Json     // ИИ-дің толық талдауы осында сақталады
+  createdAt   DateTime @default(now())
+
+  // Variant кестесімен байланыс
+  variantId   String
+  variant     Variant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+}

@@ -27,7 +27,7 @@ export default function Home() {
             2025-2026 Олимпиада маусымы
           </span>
             <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-6 leading-tight">
-              Қазақ тілі мен әдебиет пәнінен <span className="text-blue-600">Олимпиадаға</span> дайындал
+              Қазақ тілі мен әдебиеті пәнінен <span className="text-blue-600">Олимпиадаға</span> дайындал
             </h1>
             <p className="text-lg text-slate-600 mb-10 leading-relaxed">
               Эссе жазып, лингвистикалық талдау жасауды үйрен.
