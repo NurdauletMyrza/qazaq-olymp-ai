@@ -2,113 +2,86 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-export default function CreateVariantPage() {
+export default function CreateTaskPage() {
+    // Вкладкалар стейті
+    const [mainTab, setMainTab] = useState<'literature' | 'language'>('literature');
+    const [langTab, setLangTab] = useState<'PHONETICS' | 'LEXICOLOGY' | 'MORPHOLOGY' | 'SYNTAX'>('PHONETICS');
+
+    // Тапсырманың жалпы аты
     const [title, setTitle] = useState('');
-    // НОВЫЕ СТЕЙТЫ ДЛЯ ФОНЕТИКИ
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Әдебиет: 10 сұрақ
+    const [literatureTasks, setLiteratureTasks] = useState(
+        Array.from({ length: 10 }, () => ({ question: '', expectedAnswer: '' }))
+    );
+
+    // Тіл (Фонетика, Морфология т.б. үшін ортақ)
+    const [languageContent, setLanguageContent] = useState({ question: '', expectedAnswer: '' });
+
+    // Фонетикадағы ИИ генерациясына арналған сөздер тізімі (алдыңғы жасағанымыз)
     const [phoneticWords, setPhoneticWords] = useState<string[]>([]);
     const [currentWord, setCurrentWord] = useState('');
-    const [isGeneratingPhonetics, setIsGeneratingPhonetics] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
 
-    // Функция добавления слова
+    // Фонетика логикасы
     const handleAddWord = () => {
         if (!currentWord.trim()) return;
-
-        const updatedWords = [...phoneticWords, currentWord.trim()];
-        setPhoneticWords(updatedWords);
+        const newWords = [...phoneticWords, currentWord.trim()];
+        setPhoneticWords(newWords);
         setCurrentWord('');
-
-        // Автоматически обновляем текст вопроса
-        updateLanguage('phonetics', 'question', `Берілген сөздерге фонетикалық талдау жасаңыз, әріп пен дыбыс санын, дыбыстардың, буынның түрлерін анықтаңыз:\n${updatedWords.join(', ')}`);
+        setLanguageContent({
+            ...languageContent,
+            question: `Берілген сөздерге фонетикалық талдау жасаңыз:\n${newWords.join(', ')}`
+        });
     };
 
-    // Удаление слова из списка
-    const handleRemoveWord = (indexToRemove: number) => {
-        const updatedWords = phoneticWords.filter((_, index) => index !== indexToRemove);
-        setPhoneticWords(updatedWords);
-        updateLanguage('phonetics', 'question', `Берілген сөздерге фонетикалық талдау жасаңыз:\n${updatedWords.join(', ')}`);
-    };
-
-    // Генерация правильного ответа через ИИ
     const generatePhoneticsAnswer = async () => {
         if (phoneticWords.length === 0) return alert("Алдымен сөздерді қосыңыз!");
-
-        setIsGeneratingPhonetics(true);
+        setIsGenerating(true);
         try {
             const res = await fetch('/api/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'generate_phonetics', // Нам нужно будет добавить этот тип в наш API
-                    question: phoneticWords.join(', '),
-                    answer: ''
-                }),
+                body: JSON.stringify({ type: 'generate_phonetics', question: phoneticWords.join(', '), answer: '' }),
             });
             const data = await res.json();
-            updateLanguage('phonetics', 'expectedAnswer', data.text);
+            setLanguageContent({ ...languageContent, expectedAnswer: data.text });
         } catch (error) {
-            alert("Қате шықты. ИИ жауап бере алмады.");
+            alert("ИИ жауап бере алмады.");
         }
-        setIsGeneratingPhonetics(false);
+        setIsGenerating(false);
     };
 
-    // Қазақ әдебиеті: 10 сұрақ
-    const [literature, setLiterature] = useState(
-        Array.from({ length: 10 }, () => ({ question: '', expectedAnswer: '' }))
-    );
-
-    // Қазақ тілі: 4 бөлім
-    const [language, setLanguage] = useState({
-        phonetics: { question: '', expectedAnswer: '' },
-        morphology: { question: '', expectedAnswer: '' },
-        syntax: { question: '', expectedAnswer: '' },
-        lexicology: { question: '', expectedAnswer: '' },
-    });
-
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Әдебиет сұрақтарын жаңарту функциясы
-    const updateLiterature = (index: number, field: 'question' | 'expectedAnswer', value: string) => {
-        const newLit = [...literature];
-        newLit[index][field] = value;
-        setLiterature(newLit);
-    };
-
-    // Тіл сұрақтарын жаңарту функциясы
-    const updateLanguage = (section: keyof typeof language, field: 'question' | 'expectedAnswer', value: string) => {
-        setLanguage({
-            ...language,
-            [section]: { ...language[section], [field]: value }
-        });
-    };
-
-    // Базаға сақтау функциясы
+    // Базаға сақтау
     const handleSave = async () => {
-        if (!title.trim()) {
-            alert("Өтініш, нұсқаның атын жазыңыз!");
-            return;
-        }
+        if (!title.trim()) return alert("Тапсырманың атын жазыңыз!");
 
         setIsSubmitting(true);
-        const payload = { title, literature, language };
+
+        // Қай бөлім таңдалды, соған қарай деректерді жинаймыз
+        const payload = {
+            title,
+            category: mainTab === 'literature' ? 'LITERATURE' : langTab,
+            content: mainTab === 'literature' ? literatureTasks : [languageContent]
+        };
 
         try {
-            // Жаңа жасаған API-ге сұраныс жібереміз
-            const res = await fetch('/api/variants', {
+            const res = await fetch('/api/tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
             if (res.ok) {
-                alert("✅ Нұсқа деректер базасына сәтті сақталды!");
-                // Қаласаңыз, сақтаған соң бетті тазартуға немесе басты бетке қайтаруға болады
-                // window.location.href = "/";
+                alert("✅ Тапсырма сәтті сақталды!");
+                setTitle(''); // Сақтап болған соң тазарту
             } else {
                 const data = await res.json();
-                alert("Қате шықты: " + data.error);
+                alert("Қате: " + data.error);
             }
         } catch (error) {
-            alert("Сервермен байланыс үзілді. Қайта көріңіз.");
+            alert("Сервермен байланыс үзілді.");
         } finally {
             setIsSubmitting(false);
         }
@@ -118,120 +91,141 @@ export default function CreateVariantPage() {
         <div className="min-h-screen bg-slate-50 p-6">
             <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-black text-slate-900">Жаңа Олимпиада нұсқасын құру</h1>
+                    <h1 className="text-3xl font-black text-slate-900">Жаңа тапсырма қосу</h1>
                     <Link href="/" className="text-blue-600 font-bold hover:underline">← Басты бетке</Link>
                 </div>
 
-                {/* Нұсқа атауы */}
-                <div className="mb-10">
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Нұсқа атауы (Сынып, нөмірі)</label>
+                {/* НЕГІЗГІ Вкладкалар */}
+                <div className="flex gap-4 mb-8 bg-slate-100 p-2 rounded-2xl">
+                    <button
+                        onClick={() => setMainTab('literature')}
+                        className={`flex-1 py-3 rounded-xl font-bold transition-all ${mainTab === 'literature' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-200'}`}
+                    >
+                        📚 Қазақ әдебиеті
+                    </button>
+                    <button
+                        onClick={() => setMainTab('language')}
+                        className={`flex-1 py-3 rounded-xl font-bold transition-all ${mainTab === 'language' ? 'bg-green-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-200'}`}
+                    >
+                        🗣️ Қазақ тілі
+                    </button>
+                </div>
+
+                {/* Тапсырма атауы */}
+                <div className="mb-8">
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Тапсырманың атауы</label>
                     <input
                         className="w-full p-4 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none font-medium"
-                        placeholder="Мысалы: 9-сынып. Облыстық кезең (1-нұсқа)"
+                        placeholder={mainTab === 'literature' ? "Мысалы: Абай жолы, 1-тарау (10 сұрақ)" : "Мысалы: 9-сынып. Фонетикалық талдау"}
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                     />
                 </div>
 
-                {/* 1-КЕЗЕҢ: ҚАЗАҚ ӘДЕБИЕТІ */}
-                <div className="mb-12">
-                    <h2 className="text-2xl font-bold bg-blue-600 text-white p-4 rounded-xl mb-6">1-кезең: Қазақ әдебиеті (10 сұрақ)</h2>
-                    <p className="text-sm text-slate-500 mb-4">Әр сұрақты және ИИ тексеруге негіз болатын "күтілетін жауапты" енгізіңіз.</p>
-
+                {/* ҚАЗАҚ ӘДЕБИЕТІ БӨЛІМІ */}
+                {mainTab === 'literature' && (
                     <div className="space-y-6">
-                        {literature.map((item, index) => (
-                            <div key={index} className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                                <h3 className="font-bold text-slate-800 mb-3">{index + 1}-сұрақ</h3>
+                        <h2 className="text-xl font-bold text-slate-800">Ашық сұрақтар (10 сұрақ)</h2>
+                        {literatureTasks.map((item, index) => (
+                            <div key={index} className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
+                                <h3 className="font-bold text-blue-800 mb-3">{index + 1}-сұрақ</h3>
                                 <input
-                                    className="w-full p-3 mb-3 border border-slate-300 rounded-lg outline-none focus:border-blue-500"
+                                    className="w-full p-3 mb-3 border border-slate-300 rounded-lg outline-none bg-white"
                                     placeholder="Сұрақ мәтіні..."
                                     value={item.question}
-                                    onChange={(e) => updateLiterature(index, 'question', e.target.value)}
+                                    onChange={(e) => {
+                                        const newLit = [...literatureTasks];
+                                        newLit[index].question = e.target.value;
+                                        setLiteratureTasks(newLit);
+                                    }}
                                 />
                                 <textarea
-                                    className="w-full p-3 h-24 border border-slate-300 rounded-lg outline-none focus:border-blue-500 resize-none"
+                                    className="w-full p-3 h-24 border border-slate-300 rounded-lg outline-none bg-white resize-none"
                                     placeholder="Мұғалімнің күтілетін жауабы (ИИ осыған қарап бағалайды)..."
                                     value={item.expectedAnswer}
-                                    onChange={(e) => updateLiterature(index, 'expectedAnswer', e.target.value)}
+                                    onChange={(e) => {
+                                        const newLit = [...literatureTasks];
+                                        newLit[index].expectedAnswer = e.target.value;
+                                        setLiteratureTasks(newLit);
+                                    }}
                                 />
                             </div>
                         ))}
                     </div>
-                </div>
+                )}
 
-                {/* 2-КЕЗЕҢ: ҚАЗАҚ ТІЛІ */}
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 md:col-span-2">
-                    <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <span className="text-2xl">🗣️</span> Фонетикалық талдау
-                    </h3>
-
-                    <div className="flex gap-3 mb-4">
-                        <input
-                            type="text"
-                            className="flex-1 p-3 border border-slate-300 rounded-lg outline-none focus:border-blue-500"
-                            placeholder="Талдауға сөз жазыңыз (мысалы: Қиысу)"
-                            value={currentWord}
-                            onChange={(e) => setCurrentWord(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleAddWord()}
-                        />
-                        <button
-                            onClick={handleAddWord}
-                            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition"
-                        >
-                            Сөз қосу
-                        </button>
-                    </div>
-
-                    {/* Список добавленных слов (Тэги) */}
-                    {phoneticWords.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4 p-3 bg-white rounded-lg border border-slate-200">
-                            {phoneticWords.map((word, idx) => (
-                                <span key={idx} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 border border-blue-200">
-                      {word}
-                                    <button onClick={() => handleRemoveWord(idx)} className="text-blue-400 hover:text-red-500">×</button>
-                    </span>
+                {/* ҚАЗАҚ ТІЛІ БӨЛІМІ */}
+                {mainTab === 'language' && (
+                    <div>
+                        {/* Тілдің ішкі вкладкалары */}
+                        <div className="flex flex-wrap gap-2 mb-8">
+                            {['PHONETICS', 'LEXICOLOGY', 'MORPHOLOGY', 'SYNTAX'].map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => { setLangTab(tab as any); setLanguageContent({question: '', expectedAnswer: ''}) }}
+                                    className={`px-6 py-2 rounded-full font-bold text-sm transition-all border-2 ${langTab === tab ? 'border-green-600 bg-green-50 text-green-700' : 'border-slate-200 text-slate-500 hover:border-green-300'}`}
+                                >
+                                    {tab === 'PHONETICS' ? 'Фонетика' : tab === 'LEXICOLOGY' ? 'Лексика' : tab === 'MORPHOLOGY' ? 'Морфология' : 'Синтаксис'}
+                                </button>
                             ))}
                         </div>
-                    )}
 
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase">Оқушыға көрінетін сұрақ:</label>
-                            <textarea
-                                className="w-full p-3 mt-1 h-32 border border-slate-300 rounded-lg outline-none bg-white"
-                                placeholder="Сұрақ автоматты түрде құралады..."
-                                value={language.phonetics.question}
-                                onChange={(e) => updateLanguage('phonetics', 'question', e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <div className="flex justify-between items-end mb-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase">ИИ тексеретін жауап кілті:</label>
-                                <button
-                                    onClick={generatePhoneticsAnswer}
-                                    disabled={isGeneratingPhonetics || phoneticWords.length === 0}
-                                    className="text-xs font-bold bg-indigo-100 text-indigo-700 px-3 py-1 rounded hover:bg-indigo-200 transition disabled:opacity-50"
-                                >
-                                    {isGeneratingPhonetics ? '⏳ Жасалуда...' : '✨ ИИ арқылы кілтті жасау'}
-                                </button>
+                        {/* Тіл тапсырмасын енгізу */}
+                        <div className="bg-green-50/30 p-6 rounded-2xl border border-green-100">
+
+                            {/* Егер Фонетика болса, ИИ генерациясын көрсетеміз */}
+                            {langTab === 'PHONETICS' && (
+                                <div className="mb-6 p-4 bg-white rounded-xl border border-slate-200">
+                                    <p className="text-sm font-bold text-slate-500 mb-3">ИИ көмекшісімен сөздерді қосу:</p>
+                                    <div className="flex gap-2 mb-3">
+                                        <input
+                                            className="flex-1 p-2 border border-slate-300 rounded-lg"
+                                            placeholder="Сөз жазыңыз..." value={currentWord} onChange={(e) => setCurrentWord(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleAddWord()}
+                                        />
+                                        <button onClick={handleAddWord} className="bg-blue-600 text-white px-4 py-2 rounded-lg">Қосу</button>
+                                        <button onClick={generatePhoneticsAnswer} className="bg-indigo-100 text-indigo-700 font-bold px-4 py-2 rounded-lg hover:bg-indigo-200">
+                                            ✨ ИИ жауап кілтін жасау
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {phoneticWords.map((w, i) => <span key={i} className="bg-slate-100 px-3 py-1 rounded-full text-sm font-bold">{w}</span>)}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Сұрақ пен Жауап (Барлық бөлімге ортақ) */}
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-bold text-slate-700">Тапсырма шарты / Сұрақ:</label>
+                                    <textarea
+                                        className="w-full p-4 h-48 mt-2 border border-slate-300 rounded-xl outline-none bg-white resize-none"
+                                        placeholder="Мысалы: Төмендегі сөйлемге синтаксистік талдау жасаңыз..."
+                                        value={languageContent.question}
+                                        onChange={(e) => setLanguageContent({ ...languageContent, question: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-slate-700">ИИ тексеретін жауап кілті:</label>
+                                    <textarea
+                                        className="w-full p-4 h-48 mt-2 border border-slate-300 rounded-xl outline-none bg-white resize-none"
+                                        placeholder="Дұрыс жауапты осында жазыңыз..."
+                                        value={languageContent.expectedAnswer}
+                                        onChange={(e) => setLanguageContent({ ...languageContent, expectedAnswer: e.target.value })}
+                                    />
+                                </div>
                             </div>
-                            <textarea
-                                className="w-full p-3 h-32 border border-slate-300 rounded-lg outline-none bg-white"
-                                placeholder="Мұғалімнің күтілетін жауабы..."
-                                value={language.phonetics.expectedAnswer}
-                                onChange={(e) => updateLanguage('phonetics', 'expectedAnswer', e.target.value)}
-                            />
+
                         </div>
                     </div>
-                </div>
+                )}
 
-                {/* Сақтау батырмасы */}
                 <button
                     onClick={handleSave}
                     disabled={isSubmitting}
-                    className="w-full bg-slate-900 text-white font-black text-xl py-5 rounded-2xl hover:bg-blue-600 transition-all shadow-lg"
+                    className="w-full mt-8 bg-slate-900 text-white font-black text-xl py-5 rounded-2xl hover:bg-blue-600 transition-all shadow-lg"
                 >
-                    {isSubmitting ? 'Сақталуда...' : 'Нұсқаны базаға сақтау'}
+                    {isSubmitting ? 'Сақталуда...' : 'Тапсырманы базаға сақтау'}
                 </button>
 
             </div>

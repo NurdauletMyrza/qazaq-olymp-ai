@@ -3,42 +3,30 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("POSTGRES_PRISMA_URL") // Vercel берген негізгі сілтеме
-  directUrl = env("POSTGRES_URL_NON_POOLING") // Тікелей байланыс үшін
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// Мұғалім жасайтын нұсқа (Теория)
-model Variant {
-  id                 String   @id @default(cuid())
-  title              String
-  createdAt          DateTime @default(now())
+// 1. Мұғалім жасайтын тапсырмалар (Әдебиет немесе Тіл)
+model TheoryTask {
+  id          String   @id @default(cuid())
+  title       String
+  category    String   // "LITERATURE", "PHONETICS", "MORPHOLOGY", "SYNTAX", "LEXICOLOGY"
+  content     Json     // Сұрақтар мен жауаптар
+  createdAt   DateTime @default(now())
 
-  // Қазақ әдебиеті (10 сұрақ JSON форматында сақталады)
-  literature         Json
-
-  // Қазақ тілі (4 бөлім)
-  phoneticsQuestion  String
-  phoneticsExpected  String
-  morphologyQuestion String
-  morphologyExpected String
-  syntaxQuestion     String
-  syntaxExpected     String
-  lexicologyQuestion String
-  lexicologyExpected String
-
-  results            Result[] // Осы нұсқаға тиесілі оқушылардың нәтижелері
+  results     Result[] // Бұл тапсырманы орындаған оқушылардың нәтижелері
 }
 
-// Оқушының нәтижесі
+// 2. Оқушының нәтижесі (Енді TheoryTask-қа байланған)
 model Result {
   id          String   @id @default(cuid())
   studentName String
   totalScore  Int
-  details     Json     // ИИ-дің толық талдауы осында сақталады
+  details     Json     // ИИ-дің толық талдауы
   createdAt   DateTime @default(now())
 
-  // Variant кестесімен байланыс
-  variantId   String
-  variant     Variant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  // Жаңа байланыс: Variant-тың орнына TheoryTask
+  taskId      String
+  task        TheoryTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }

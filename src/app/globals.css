@@ -1,4 +1,19 @@
 @import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ДОБАВЬТЕ ЭТОТ БЛОК В КОНЕЦ ФАЙЛА */
+@layer base {
+  input, textarea {
+    @apply text-slate-900 font-medium placeholder:text-slate-400;
+  }
+
+  /* Дополнительно: чтобы цвет курсора (каретки) был синим, как у современных сайтов */
+  input, textarea {
+    caret-color: #2563eb;
+  }
+}
 
 :root {
   --background: #ffffff;
