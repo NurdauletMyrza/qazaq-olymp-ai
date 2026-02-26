@@ -1,160 +1,232 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-// Тапсырмалар базасы (Кейін оны API-дан алатындай жасауға болады)
-const tasks = [
-    {
-        id: 1,
-        category: "📚 Әдебиет",
-        title: "Бауыржан Момышұлы - «Ұшқан ұя»",
-        question: "«Ұшқан ұя» туындысындағы Бауыржанға көп ертегі айтып беретін апасының және әпкелерінің есімін еске түсіріңіз және олардың образына қысқаша сипаттама беріңіз."
-    },
-    {
-        id: 2,
-        category: "🗣️ Фонетика",
-        title: "Дыбыстық талдау",
-        question: "Берілген сөздерге толық фонетикалық талдау жасаңыз (әріп, дыбыс, буын түрлері): \n1. Қиысу\n2. Рия\n3. Тыю\n4. Еру"
-    },
-    {
-        id: 3,
-        category: "✍️ Морфология",
-        title: "Сөз таптарын талдау",
-        question: "Қарамен берілген сөздерге морфологиялық талдау жасаңыз:\n«Тастақ жер, қалмасын білді, батырсымақтанып, жасырақ еді»."
-    },
-    {
-        id: 4,
-        category: "🔗 Синтаксис",
-        title: "Сөйлем мүшелерін талдау",
-        question: "Берілген сөйлемге синтаксистік талдау жасаңыз (Сөздердің байланысу тәсілдері, сөйлем түрлері, сөйлем мүшелері):\n«Сонау Адам ата заманынан бері қарай бір елдің өнегесіне бір ел ортақ боп келген»."
-    },
-    {
-        id: 5,
-        category: "📜 Мәтінмен жұмыс",
-        title: "Стильді анықтау",
-        question: "Төмендегі үзіндінің стилін анықтап, дәлелдеңіз:\n«Қазір дүние жүзі жаңа тарихи дәуірге қадам басты. Жасанды интеллектінің қарқынды дамуы қазірдің өзінде халықтың мінез-құлқына әсер етіп жатыр.»"
-    }
-];
-
 export default function OlympiadPage() {
-    const [selectedTask, setSelectedTask] = useState(tasks[0]);
-    const [answer, setAnswer] = useState('');
+    const [tasks, setTasks] = useState<any[]>([]);
+    const [loadingTasks, setLoadingTasks] = useState(true);
+
+    // НЕГІЗГІ Вкладкалар стейті
+    const [mainTab, setMainTab] = useState<'literature' | 'language'>('literature');
+
+    const [selectedTask, setSelectedTask] = useState<any>(null);
+    const [answers, setAnswers] = useState<string[]>([]);
     const [result, setResult] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [checking, setChecking] = useState(false);
+
+    // 1. Бет ашылғанда базадан тапсырмаларды жүктеп алу
+    useEffect(() => {
+        const fetchTasks = async () => {
+            try {
+                const res = await fetch('/api/tasks');
+                if (res.ok) {
+                    const data = await res.json();
+                    setTasks(data);
+                }
+            } catch (error) {
+                console.error("Қате:", error);
+            } finally {
+                setLoadingTasks(false);
+            }
+        };
+        fetchTasks();
+    }, []);
+
+    // 2. Таңдалған вкладкаға байланысты тапсырмаларды сүзгілеу (фильтр)
+    const filteredTasks = tasks.filter(task =>
+        mainTab === 'literature'
+            ? task.category === 'LITERATURE'
+            : task.category !== 'LITERATURE' // Яғни: Phonetics, Morphology, Syntax, Lexicology
+    );
+
+    // Вкладка ауысқан сайын, сол бөлімдегі бірінші тапсырманы автоматты ашу
+    useEffect(() => {
+        if (filteredTasks.length > 0) {
+            handleSelectTask(filteredTasks[0]);
+        } else {
+            setSelectedTask(null);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mainTab, tasks]);
+
+    // Тапсырманы таңдау функциясы
+    const handleSelectTask = (task: any) => {
+        setSelectedTask(task);
+        setAnswers(Array(task.content.length).fill(''));
+        setResult('');
+    };
+
+    const handleAnswerChange = (text: string, index: number) => {
+        const newAnswers = [...answers];
+        newAnswers[index] = text;
+        setAnswers(newAnswers);
+    };
 
     const handleCheck = async () => {
-        if (answer.trim().length < 5) {
-            alert("Жауабыңыз тым қысқа!");
-            return;
-        }
-
-        setLoading(true);
+        setChecking(true);
         setResult('');
+
+        let combinedPrompt = `Сен олимпиада сарапшысысың. Төмендегі сұрақтарды мұғалімнің жауап кілтімен салыстырып, оқушыны бағала.\n\n`;
+
+        selectedTask.content.forEach((item: any, idx: number) => {
+            combinedPrompt += `Сұрақ ${idx + 1}: ${item.question}\n`;
+            combinedPrompt += `Мұғалімнің күтілетін жауабы (Дұрыс кілт): ${item.expectedAnswer}\n`;
+            combinedPrompt += `Оқушының жауабы: ${answers[idx] || 'Жауап берілмеді'}\n\n`;
+        });
 
         try {
             const res = await fetch('/api/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    question: selectedTask.question, // Таңдалған сұрақ
-                    answer: answer,
-                    type: 'olympiad' // API-ге бұл 2-тур екенін айтамыз
-                }),
+                body: JSON.stringify({ type: 'theory_check', question: combinedPrompt, answer: '' }),
             });
 
             const data = await res.json();
             setResult(data.text || "Қате орын алды");
         } catch (error) {
-            setResult("Сервермен байланыс үзілді. Қайта көріңіз.");
+            setResult("Сервермен байланыс үзілді.");
         }
-        setLoading(false);
+        setChecking(false);
+    };
+
+    // Категорияны әдемілеп шығаруға арналған көмекші функция
+    const getCategoryName = (cat: string) => {
+        const categories: Record<string, string> = {
+            LITERATURE: '📚 Қазақ әдебиеті',
+            PHONETICS: '🗣️ Фонетика',
+            MORPHOLOGY: '✍️ Морфология',
+            SYNTAX: '🔗 Синтаксис',
+            LEXICOLOGY: '📖 Лексика'
+        };
+        return categories[cat] || cat;
     };
 
     return (
         <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8 font-sans">
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-7xl mx-auto">
+
                 {/* Навигация */}
                 <div className="flex items-center justify-between mb-8">
                     <Link href="/" className="text-blue-600 font-bold hover:bg-blue-50 px-4 py-2 rounded-xl transition">
                         ← Басты бетке
                     </Link>
-                    <h1 className="text-2xl font-black text-slate-900 font-heading">2-тур: Теориялық дайындық</h1>
+                    <h1 className="text-2xl font-black text-slate-900">2-тур: Теориялық дайындық</h1>
+                </div>
+
+                {/* НЕГІЗГІ Вкладкалар (Оқушы таңдайды) */}
+                <div className="flex gap-4 mb-8 bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
+                    <button
+                        onClick={() => setMainTab('literature')}
+                        className={`flex-1 py-4 rounded-xl font-bold transition-all text-lg ${mainTab === 'literature' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-blue-50'}`}
+                    >
+                        📚 Қазақ әдебиеті
+                    </button>
+                    <button
+                        onClick={() => setMainTab('language')}
+                        className={`flex-1 py-4 rounded-xl font-bold transition-all text-lg ${mainTab === 'language' ? 'bg-green-600 text-white shadow-md' : 'text-slate-500 hover:bg-green-50'}`}
+                    >
+                        🗣️ Қазақ тілі
+                    </button>
                 </div>
 
                 <div className="grid md:grid-cols-12 gap-6">
 
                     {/* СОЛ ЖАҚ: Тапсырмалар тізімі */}
                     <div className="md:col-span-4 space-y-3">
-                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Тапсырма түрлері</h3>
-                        {tasks.map((task) => (
-                            <button
-                                key={task.id}
-                                onClick={() => {
-                                    setSelectedTask(task);
-                                    setAnswer('');
-                                    setResult('');
-                                }}
-                                className={`w-full text-left p-4 rounded-2xl transition-all border-2 ${
-                                    selectedTask.id === task.id
-                                        ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200'
-                                        : 'bg-white border-slate-100 text-slate-600 hover:border-blue-200 hover:bg-blue-50'
-                                }`}
-                            >
-                                <div className="text-xs font-bold opacity-80 mb-1">{task.category}</div>
-                                <div className="font-bold">{task.title}</div>
-                            </button>
-                        ))}
-                    </div>
+                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
+                            {mainTab === 'literature' ? 'Әдебиет тапсырмалары' : 'Тіл тапсырмалары'}
+                        </h3>
 
-                    {/* ОҢ ЖАҚ: Жұмыс аймағы */}
-                    <div className="md:col-span-8">
-                        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
-
-                            {/* Сұрақ блогы */}
-                            <div className="mb-6">
-                <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold mb-3">
-                  {selectedTask.category}
-                </span>
-                                <h2 className="text-xl font-bold text-slate-900 mb-4 font-heading">{selectedTask.question}</h2>
-                                <div className="h-1 w-full bg-slate-100 rounded-full"></div>
+                        {loadingTasks ? (
+                            <div className="p-4 text-center text-slate-500 animate-pulse">Жүктелуде...</div>
+                        ) : filteredTasks.length === 0 ? (
+                            <div className="p-8 text-center text-slate-500 bg-white rounded-2xl border border-slate-200 border-dashed">
+                                Бұл бөлімде әзірге тапсырмалар жоқ. Мұғалім қосқан кезде осында пайда болады.
                             </div>
-
-                            {/* Жауап жазу алаңы */}
-                            <textarea
-                                className="w-full h-64 p-5 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 outline-none transition-all resize-none text-lg leading-relaxed mb-4"
-                                placeholder="Жауабыңызды осында жазыңыз... (Талдауды толық жазуға тырысыңыз)"
-                                value={answer}
-                                onChange={(e) => setAnswer(e.target.value)}
-                            />
-
-                            {/* Батырма */}
-                            <div className="flex justify-end">
+                        ) : (
+                            filteredTasks.map((task) => (
                                 <button
-                                    onClick={handleCheck}
-                                    disabled={loading}
-                                    className={`px-8 py-4 rounded-xl font-bold text-white transition-all transform active:scale-95 ${
-                                        loading
-                                            ? 'bg-slate-400 cursor-not-allowed'
-                                            : 'bg-slate-900 hover:bg-blue-600 shadow-lg'
+                                    key={task.id}
+                                    onClick={() => handleSelectTask(task)}
+                                    className={`w-full text-left p-4 rounded-2xl transition-all border-2 ${
+                                        selectedTask?.id === task.id
+                                            ? mainTab === 'literature'
+                                                ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200'
+                                                : 'bg-green-600 border-green-600 text-white shadow-lg shadow-green-200'
+                                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                                     }`}
                                 >
-                                    {loading ? 'Сарапталуда...' : 'Жауапты тексеру'}
+                                    <div className="text-xs font-bold opacity-80 mb-1">{getCategoryName(task.category)}</div>
+                                    <div className="font-bold text-lg">{task.title}</div>
                                 </button>
-                            </div>
+                            ))
+                        )}
+                    </div>
 
-                            {/* Нәтиже блогы */}
-                            {result && (
-                                <div className="mt-8 pt-8 border-t-2 border-slate-100 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                    <h3 className="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
-                                        🤖 ИИ Сараптамасы:
-                                    </h3>
-                                    <div className="bg-green-50 rounded-2xl p-6 border border-green-100 text-slate-700 prose prose-sm max-w-none whitespace-pre-wrap">
-                                        {result}
-                                    </div>
+                    {/* ОҢ ЖАҚ: Таңдалған тапсырманы орындау аймағы */}
+                    <div className="md:col-span-8">
+                        {selectedTask && (
+                            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 md:p-8">
+
+                                <div className="mb-6 pb-6 border-b border-slate-100">
+                  <span className={`inline-block px-3 py-1 rounded-lg text-sm font-bold mb-3 ${
+                      mainTab === 'literature' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                  }`}>
+                    {getCategoryName(selectedTask.category)}
+                  </span>
+                                    <h2 className="text-2xl font-black text-slate-900">{selectedTask.title}</h2>
                                 </div>
-                            )}
 
-                        </div>
+                                {/* Сұрақтарды шығару */}
+                                <div className="space-y-8">
+                                    {selectedTask.content.map((item: any, idx: number) => (
+                                        <div key={idx} className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                                            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-start gap-3 whitespace-pre-wrap">
+                        <span className={`text-white w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 ${
+                            mainTab === 'literature' ? 'bg-blue-600' : 'bg-green-600'
+                        }`}>
+                          {idx + 1}
+                        </span>
+                                                {item.question}
+                                            </h3>
+                                            <textarea
+                                                className="w-full h-40 p-5 bg-white border-2 border-slate-300 rounded-xl text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition-all resize-none"
+                                                placeholder="Оқушы, жауабыңызды осында жазыңыз..."
+                                                value={answers[idx] || ''}
+                                                onChange={(e) => handleAnswerChange(e.target.value, idx)}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="mt-8 flex justify-end">
+                                    <button
+                                        onClick={handleCheck}
+                                        disabled={checking}
+                                        className={`px-8 py-4 rounded-xl font-bold text-white transition-all transform active:scale-95 shadow-lg ${
+                                            checking
+                                                ? 'bg-slate-400 cursor-not-allowed'
+                                                : mainTab === 'literature' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'
+                                        }`}
+                                    >
+                                        {checking ? '⏳ ИИ тексеріп жатыр...' : '✨ Жауаптарды тексеру'}
+                                    </button>
+                                </div>
+
+                                {/* Нәтиже көрсету */}
+                                {result && (
+                                    <div className="mt-8 pt-8 border-t-2 border-slate-100 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                        <h3 className="text-xl font-black text-slate-900 mb-4 flex items-center gap-2">
+                                            🤖 ИИ Сараптамасы (Мұғалімнің кілті негізінде):
+                                        </h3>
+                                        <div className="bg-indigo-50 rounded-2xl p-6 border border-indigo-200 text-slate-800 prose prose-blue max-w-none whitespace-pre-wrap">
+                                            {result}
+                                        </div>
+                                    </div>
+                                )}
+
+                            </div>
+                        )}
                     </div>
 
                 </div>

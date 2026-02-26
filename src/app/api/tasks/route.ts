@@ -26,3 +26,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Серверлік қате", details: error.message }, { status: 500 });
     }
 }
+
+export async function GET() {
+    try {
+        // Базадан барлық тапсырмаларды ең жаңасынан бастап алу (descending)
+        const tasks = await prisma.theoryTask.findMany({
+            orderBy: { createdAt: 'desc' }
+        });
+
+        return NextResponse.json(tasks, { status: 200 });
+    } catch (error: any) {
+        console.error("Тапсырмаларды алу қатесі:", error);
+        return NextResponse.json({ error: "Тапсырмаларды жүктеу мүмкін болмады" }, { status: 500 });
+    }
+}
