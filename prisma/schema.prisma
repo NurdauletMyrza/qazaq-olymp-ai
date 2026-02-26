@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 1. Мұғалім жасайтын тапсырмалар (Әдебиет немесе Тіл)
+// Мұғалім жасайтын тапсырмалар (Әдебиет немесе Тіл)
 model TheoryTask {
   id          String   @id @default(cuid())
   title       String
@@ -18,15 +18,25 @@ model TheoryTask {
   results     Result[] // Бұл тапсырманы орындаған оқушылардың нәтижелері
 }
 
-// 2. Оқушының нәтижесі (Енді TheoryTask-қа байланған)
+// ТЕОРИЯ нәтижелерін сақтайтын кесте
 model Result {
   id          String   @id @default(cuid())
-  studentName String
-  totalScore  Int
-  details     Json     // ИИ-дің толық талдауы
+  studentName String   // Оқушының аты-жөні
+  score       String?  // Мысалы: "8/10" немесе ұпай
+  details     String   // ИИ-дің берген толық талдауы (мәтін түрінде)
   createdAt   DateTime @default(now())
 
-  // Жаңа байланыс: Variant-тың орнына TheoryTask
   taskId      String
   task        TheoryTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+// ЭССЕ нәтижелерін сақтайтын ЖАҢА кесте
+model EssayResult {
+  id          String   @id @default(cuid())
+  studentName String   // Оқушының аты-жөні
+  topic       String   // Эссе тақырыбы
+  essayText   String   // Оқушының жазған эссесі
+  score       String?  // ИИ берген ұпай
+  details     String   // ИИ-дің эссеге жасаған толық талдауы
+  createdAt   DateTime @default(now())
 }
