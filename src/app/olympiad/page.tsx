@@ -66,25 +66,50 @@ export default function OlympiadPage() {
         setChecking(true);
         setResult('');
 
-        let combinedPrompt = `Сен олимпиада сарапшысысың. Төмендегі сұрақтарды мұғалімнің жауап кілтімен салыстырып, оқушыны бағала.\n\n`;
+        // 1. Сұрақтарды 5-тен бөлуге арналған логика (Chunking)
+        const CHUNK_SIZE = 5;
+        const chunks = [];
 
-        selectedTask.content.forEach((item: any, idx: number) => {
-            combinedPrompt += `Сұрақ ${idx + 1}: ${item.question}\n`;
-            combinedPrompt += `Мұғалімнің күтілетін жауабы (Дұрыс кілт): ${item.expectedAnswer}\n`;
-            combinedPrompt += `Оқушының жауабы: ${answers[idx] || 'Жауап берілмеді'}\n\n`;
-        });
+        for (let i = 0; i < selectedTask.content.length; i += CHUNK_SIZE) {
+            chunks.push({
+                content: selectedTask.content.slice(i, i + CHUNK_SIZE),
+                answers: answers.slice(i, i + CHUNK_SIZE),
+                startIndex: i // Сұрақ нөмірлері дұрыс (6, 7, 8...) болып жалғасуы үшін
+            });
+        }
 
         try {
-            const res = await fetch('/api/check', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'theory_check', question: combinedPrompt, answer: '' }),
+            // 2. Әр бөлікке жеке сұраныс дайындау (Параллельді жіберу үшін)
+            const checkPromises = chunks.map(async (chunk) => {
+                let combinedPrompt = `Сен олимпиада сарапшысысың. Төмендегі сұрақтарды мұғалімнің жауап кілтімен салыстырып, оқушыны бағала.\n\n`;
+
+                chunk.content.forEach((item: any, idx: number) => {
+                    const realQuestionNumber = chunk.startIndex + idx + 1;
+                    combinedPrompt += `Сұрақ ${realQuestionNumber}: ${item.question}\n`;
+                    combinedPrompt += `Мұғалімнің күтілетін жауабы (Дұрыс кілт): ${item.expectedAnswer}\n`;
+                    combinedPrompt += `Оқушының жауабы: ${chunk.answers[idx] || 'Жауап берілмеді'}\n\n`;
+                });
+
+                const res = await fetch('/api/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'theory_check', question: combinedPrompt, answer: '' }),
+                });
+
+                if (!res.ok) throw new Error("API қатесі");
+                const data = await res.json();
+                return data.text;
             });
 
-            const data = await res.json();
-            setResult(data.text || "Қате орын алды");
+            // 3. БАРЛЫҚ сұраныстардың жауабын бір уақытта күту (Өте жылдам болады)
+            const results = await Promise.all(checkPromises);
+
+            // 4. Келген 2 немесе одан да көп жауаптарды біріктіріп, экранға шығару
+            const finalResult = results.join('\n\n➖➖➖➖➖➖➖➖➖➖➖➖\n\n');
+            setResult(finalResult);
+
         } catch (error) {
-            setResult("Сервермен байланыс үзілді.");
+            setResult("Сервермен байланыс үзілді немесе қате орын алды.");
         }
         setChecking(false);
     };
