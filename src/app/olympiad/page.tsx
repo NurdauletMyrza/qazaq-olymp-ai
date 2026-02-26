@@ -108,6 +108,17 @@ export default function OlympiadPage() {
             const finalResult = results.join('\n\n➖➖➖➖➖➖➖➖➖➖➖➖\n\n');
             setResult(finalResult);
 
+            const savedName = localStorage.getItem('studentName') || 'Аты-жөні белгісіз оқушы';
+            await fetch('/api/results', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'theory',
+                    studentName: savedName,
+                    details: finalResult,
+                    taskId: selectedTask.id
+                })
+            });
         } catch (error) {
             setResult("Сервермен байланыс үзілді немесе қате орын алды.");
         }

@@ -65,7 +65,10 @@ export default function EssayPage() {
         }
 
         setLoading(true);
+        setResult(''); // Тексеруді бастағанда ескі нәтижені тазалау
+
         try {
+            // 1. ИИ-ге эссені жіберіп, тексерту
             const res = await fetch('/api/check', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -75,12 +78,33 @@ export default function EssayPage() {
                     type: 'essay'
                 }),
             });
+
+            if (!res.ok) throw new Error("API қатесі");
+
             const data = await res.json();
-            setResult(data.text);
+            setResult(data.text); // ИИ-дің жауабын экранға шығарамыз
+
+            // 2. Деректер базасына сақтау (ТҮЗЕТІЛГЕН БӨЛІМ)
+            const savedName = localStorage.getItem('studentName') || 'Аты-жөні белгісіз оқушы';
+            await fetch('/api/results', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'essay',
+                    studentName: savedName,
+                    topic: topic,      // 👈 ТҮЗЕТІЛДІ: selectedTopic емес, жай ғана topic
+                    essayText: essay,  // 👈 ТҮЗЕТІЛДІ: essayText емес, жай ғана essay
+                    details: data.text,
+                    score: "Тексерілді"
+                })
+            });
+
         } catch (error) {
+            console.error("Қате:", error);
             setResult("Қате орын алды. Қайта байқап көріңіз.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     return (
