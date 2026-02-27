@@ -81,9 +81,97 @@ export default function Home() {
           </div>
         </section>
 
+
+        {/*<section className="max-w-4xl mx-auto bg-slate-900 rounded-3xl p-8 md:p-10 text-white shadow-2xl relative overflow-hidden">*/}
+        {/*  /!* Декорация *!/*/}
+        {/*  <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-600 rounded-full blur-3xl opacity-20"></div>*/}
+        {/*  <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-600 rounded-full blur-3xl opacity-20"></div>*/}
+
+        {/*  <div className="relative z-10">*/}
+        {/*    <h2 className="text-2xl font-black mb-6 flex items-center gap-3">*/}
+        {/*      <span className="bg-white/10 p-2 rounded-lg">👨‍🏫</span>*/}
+        {/*      Мұғалім бұрышы*/}
+        {/*    </h2>*/}
+
+        {/*    <div className="grid md:grid-cols-2 gap-4">*/}
+
+        {/*      /!* Батырма 1: Тапсырма құрастыру *!/*/}
+        {/*      <Link*/}
+        {/*          href="/teacher/create"*/}
+        {/*          className="flex items-center gap-4 bg-white/10 hover:bg-white/20 p-4 rounded-2xl transition-all border border-white/5 hover:border-white/30 backdrop-blur-sm"*/}
+        {/*      >*/}
+        {/*        <div className="bg-blue-500 w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold shadow-lg">*/}
+        {/*          +*/}
+        {/*        </div>*/}
+        {/*        <div>*/}
+        {/*          <div className="font-bold text-lg">Жаңа тапсырма қосу</div>*/}
+        {/*          <div className="text-white/60 text-sm">Сұрақтар базасын толықтыру</div>*/}
+        {/*        </div>*/}
+        {/*      </Link>*/}
+
+        {/*      /!* Батырма 2: НӘТИЖЕЛЕРДІ КӨРУ *!/*/}
+        {/*      <Link*/}
+        {/*          href="/teacher/results"*/}
+        {/*          className="flex items-center gap-4 bg-white/10 hover:bg-white/20 p-4 rounded-2xl transition-all border border-white/5 hover:border-white/30 backdrop-blur-sm"*/}
+        {/*      >*/}
+        {/*        <div className="bg-green-500 w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold shadow-lg">*/}
+        {/*          📊*/}
+        {/*        </div>*/}
+        {/*        <div>*/}
+        {/*          <div className="font-bold text-lg">Нәтижелер тақтасы</div>*/}
+        {/*          <div className="text-white/60 text-sm">Оқушылардың ұпайларын қарау</div>*/}
+        {/*        </div>*/}
+        {/*      </Link>*/}
+
+        {/*    </div>*/}
+        {/*  </div>*/}
+        {/*</section>*/}
+
+
         {/* Статистика немесе Критерийлер блогы */}
         <section className="bg-slate-900 text-white py-16 px-6">
-          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-600 rounded-full blur-3xl opacity-20"></div>
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-600 rounded-full blur-3xl opacity-20"></div>
+
+          <div className="max-w-6xl mx-auto relative z-10">
+            <h2 className="text-2xl font-black mb-6 flex items-center gap-3">
+              <span className="bg-white/10 p-2 rounded-lg">👨‍🏫</span>
+              Мұғалім бұрышы
+            </h2>
+
+            <div className="grid md:grid-cols-2 gap-4">
+
+              {/* Батырма 1: Тапсырма құрастыру */}
+              <Link
+                  href="/teacher/create"
+                  className="flex items-center gap-4 bg-white/10 hover:bg-white/20 p-4 rounded-2xl transition-all border border-white/5 hover:border-white/30 backdrop-blur-sm"
+              >
+                <div className="bg-blue-500 w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold shadow-lg">
+                  +
+                </div>
+                <div>
+                  <div className="font-bold text-lg">Жаңа тапсырма қосу</div>
+                  <div className="text-white/60 text-sm">Сұрақтар базасын толықтыру</div>
+                </div>
+              </Link>
+
+              {/* Батырма 2: НӘТИЖЕЛЕРДІ КӨРУ */}
+              <Link
+                  href="/teacher/results"
+                  className="flex items-center gap-4 bg-white/10 hover:bg-white/20 p-4 rounded-2xl transition-all border border-white/5 hover:border-white/30 backdrop-blur-sm"
+              >
+                <div className="bg-green-500 w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold shadow-lg">
+                  📊
+                </div>
+                <div>
+                  <div className="font-bold text-lg">Нәтижелер тақтасы</div>
+                  <div className="text-white/60 text-sm">Оқушылардың ұпайларын қарау</div>
+                </div>
+              </Link>
+
+            </div>
+          </div>
+          <div className="max-w-5xl mx-auto grid mt-10 md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl font-bold mb-6 italic">Ресми бағалау критерийлері</h2>
               <ul className="space-y-4">
